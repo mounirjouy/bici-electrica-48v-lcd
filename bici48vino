@@ -1,0 +1,65 @@
+// BICI ELETTRICA 48V con LCD - Progetto di Mounir
+// Per ESP32 + LCD 16x2 I2C
+
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// LCD indirizzo 0x27, 16 colonne 2 righe
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// PIN
+const int pinBatteria = 34; // Pin dove leggi la batteria 48V con partitore
+
+// CALIBRAZIONE 48V
+// Se usi un partitore 10k e 100k, 48V -> circa 4.36V su ESP32
+// Dobbiamo ricalcolarlo poi insieme
+float fattoreVolt = 13.5; 
+
+void setup() {
+  Serial.begin(115200);
+  
+  lcd.init();
+  lcd.backlight();
+  
+  lcd.setCursor(0, 0);
+  lcd.print("Bici Mounir 48V");
+  lcd.setCursor(0, 1);
+  lcd.print("Avvio... OK!");
+  
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+  // Leggi batteria
+  int valoreADC = analogRead(pinBatteria);
+  float voltPin = valoreADC * (3.3 / 4095.0);
+  float voltBatteria = voltPin * fattoreVolt;
+  
+  // Calcola percentuale batteria 48V
+  // 48V carica = 54.6V = 100%
+  // 48V scarica = 39V = 0%
+  int percentuale = map(voltBatteria * 10, 390, 546, 0, 100);
+  if (percentuale > 100) percentuale = 100;
+  if (percentuale < 0) percentuale = 0;
+
+  // Mostra su LCD
+  lcd.setCursor(0, 0);
+  lcd.print("Batt: ");
+  lcd.print(voltBatteria, 1);
+  lcd.print("V   ");
+
+  lcd.setCursor(0, 1);
+  lcd.print("Carica: ");
+  lcd.print(percentuale);
+  lcd.print("%   ");
+
+  // Mostra anche su computer
+  Serial.print("Batteria: ");
+  Serial.print(voltBatteria);
+  Serial.print("V - ");
+  Serial.print(percentuale);
+  Serial.println("%");
+
+  delay(1000);
+}
